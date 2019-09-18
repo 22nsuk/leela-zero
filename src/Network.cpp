@@ -878,8 +878,8 @@ Network::Netresult Network::get_output_internal(
 			myprintf("\n");
 		}
     }
+//	Ladder::display_parent(*state);
 #endif
-	Ladder::display_parent(*state);
 
 /*
     myprintf("liberties\n");
@@ -922,8 +922,8 @@ Network::Netresult Network::get_output_internal(
 	std::vector<int> ladder_map(NUM_INTERSECTIONS);
 //  set_ladder_map(state, begin(ladder_map), symmetry);
     set_ladder_map(state, begin(ladder_map),        0);
-    myprintf("ladder_map\n");
-    for (auto idx = 0; idx < NUM_INTERSECTIONS; idx++) {
+//  myprintf("ladder_map. m_komove=%d\n",state->m_komove);
+    if ( 0 ) for (auto idx = 0; idx < NUM_INTERSECTIONS; idx++) {
         myprintf("%2d",ladder_map[idx]);
         if ( ((idx+1) % BOARD_SIZE) == 0 ) myprintf("\n");
     }
@@ -937,10 +937,27 @@ Network::Netresult Network::get_output_internal(
 		if ( ladder ) {
 			float r = result.policy[sym_idx];
 			float mul = 1.0f / 1000000.0f;
-			if ( ladder == Ladder::CANNOT_CAPTURE ) mul = 1.0f / 2.0f;	// 1.0f / 2.0f
+//			if ( state->m_komove != FastBoard::NO_VERTEX ) mul = 1.0;	// ladder escape maybe ok for ko threat.
+			if ( ladder == Ladder::CANNOT_CAPTURE ) mul = 1.0f / 1.0f;	// 1.0f / 2.0f
 			if ( ladder == Ladder::CAPTURE        ) mul = 1.0;	// 1.5
+			
 			r *= mul;
-        	myprintf("[%d:%3d] %.5f -> %.5f\n",ladder,idx,result.policy[sym_idx],r);
+        	if ( mul!=1.0 ) {
+				extern size_t s_root_movenum;
+				auto movenum = state->get_movenum();
+				myprintf("s_root_movenum=%d\n",s_root_movenum);
+		        const auto x = idx % BOARD_SIZE;
+		        const auto y = idx / BOARD_SIZE;
+		        const auto vertex = state->board.get_vertex(y, x);
+				if ( movenum == s_root_movenum && result.policy[sym_idx] > 0.30 ) {
+					myprintf("[%d:%3s:m=%3d,ko=%3d] %.5f -> %.5f\n",ladder,state->board.move_to_text(vertex).c_str(),movenum ,state->m_komove, result.policy[sym_idx],r);
+					FILE *fp = fopen("lz_out.txt","a");
+					if ( fp ) {
+						fprintf(fp,"[%d:%3s:m=%3d,ko=%3d] %.5f -> %.5f\n",ladder,state->board.move_to_text(vertex).c_str(),movenum ,state->m_komove, result.policy[sym_idx],r);
+						fclose(fp);
+					}
+				}
+			}
 			result.policy[sym_idx] = r;
     	}
     }

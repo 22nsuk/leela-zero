@@ -30,6 +30,8 @@ using namespace Utils;
 const int LADDER_DEPTH_MAX = 100;
 const int OK_DEPTH = 7;		// if ladder search needs deep depth, it may be ladder.
 
+size_t s_root_movenum;
+
 Ladder::LadderStatus Ladder::ladder_status(const FastState & /*state*/) {
 
     Ladder::LadderStatus status;
@@ -222,7 +224,8 @@ int Ladder::ladder_maybe(const FastState &state, int vertex) {
         if ( n == FastBoard::EMPTY ) emp4++;
         if ( n != to_move ) continue;
         int libs = board.get_liberties(n_vtx);
-        if ( libs >= 3 ) break;
+		if ( libs >= 3 ) break;
+//		if ( libs >= 4 ) break;
         if ( libs != 1 ) continue;
         auto parent = board.m_parent[n_vtx];
         if ( group == FastBoard::PASS ) {
@@ -230,7 +233,7 @@ int Ladder::ladder_maybe(const FastState &state, int vertex) {
 //			if ( board.get_state(vtx2) != FastBoard::EMPTY
 			group = parent;
 		} else {
-			if ( group != parent ) break;
+//			if ( group != parent ) break;
 		}
     }
     if ( d == 4 && emp4 == 2 && group != FastBoard::PASS ) {
@@ -244,9 +247,15 @@ int Ladder::ladder_maybe(const FastState &state, int vertex) {
 
 /*
 OOOOO
-OO..O ladder, but escape ok.
+OO..O ladder, but escape ok. killing eye.
 OX..O 
 OOOOO
+........... 
+........... 
+...........  "X" plays atari is bad move?
+......OX...  "O" is not ladder. 
+..O..XOOXX. 
+......XXOO. 
 */
     // find chase not ladder. libs = 2.
 	group = FastBoard::PASS;
@@ -272,7 +281,7 @@ OOOOO
 		int searched_depth = 0;
 		bool ret = ladder_capture(state, vertex, &searched_depth);
 		myprintf("capture_search ret=%d,depth=%d,stones=%d,vtx=%s\n",ret,searched_depth,stones, board.move_to_text(vertex).c_str());
-		if ( ret == false && searched_depth >= OK_DEPTH && stones >= 3 ) {
+		if ( ret == false && searched_depth >= OK_DEPTH && stones >= 1 ) {
 			return CANNOT_CAPTURE;
 		}
 		if ( ret == true  && searched_depth >= OK_DEPTH ) {	// diffcult ladder. encourage a little
