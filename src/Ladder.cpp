@@ -207,7 +207,7 @@ int Ladder::ladder_maybe(const FastState &state, int vertex) {
 
     const auto &board = state.board;
     const auto to_move     = board.get_to_move();
-    const auto not_to_move = board.get_not_to_move();
+//	const auto not_to_move = board.get_not_to_move();
 
     if (!state.is_move_legal(to_move, vertex)) {
         return NO_LADDER;
@@ -222,11 +222,11 @@ int Ladder::ladder_maybe(const FastState &state, int vertex) {
         int n_vtx = board.get_state_neighbor(vertex, d);
         int n = board.get_state(n_vtx);
         if ( n == FastBoard::EMPTY ) emp4++;
+//		if ( n == FastBoard::INVAL ) break;
         if ( n != to_move ) continue;
         int libs = board.get_liberties(n_vtx);
-		if ( libs >= 3 ) break;
-//		if ( libs >= 4 ) break;
-        if ( libs != 1 ) continue;
+		if ( libs >= 4 ) break;
+		if ( libs != 1 ) continue;
         auto parent = board.m_parent[n_vtx];
         if ( group == FastBoard::PASS ) {
 //        	int vtx2 = board.get_state_neighbor(vertex, (d+2)&3);
@@ -236,7 +236,7 @@ int Ladder::ladder_maybe(const FastState &state, int vertex) {
 //			if ( group != parent ) break;
 		}
     }
-    if ( d == 4 && emp4 == 2 && group != FastBoard::PASS ) {
+    if ( d == 4 && group != FastBoard::PASS && emp4 <= 2 ) {
 		int searched_depth = 0;
 		bool ret = ladder_escape(state, vertex, &searched_depth);
 		myprintf("escape_search ret=%d,depth=%d,vtx=%s\n",ret,searched_depth,board.move_to_text(vertex).c_str());
@@ -245,6 +245,33 @@ int Ladder::ladder_maybe(const FastState &state, int vertex) {
 		}
 	}
 
+	//
+	group = FastBoard::PASS;
+    emp4 = 0;
+    for (d = 0; d < 4; d++) {
+        int n_vtx = board.get_state_neighbor(vertex, d);
+        int n = board.get_state(n_vtx);
+        if ( n == FastBoard::EMPTY ) emp4++;
+//		if ( n == FastBoard::INVAL ) break;
+        if ( n != to_move ) continue;
+        int libs = board.get_liberties(n_vtx);
+		if ( libs >= 4 ) break;
+		if ( libs != 2 ) continue;
+        auto parent = board.m_parent[n_vtx];
+        if ( group == FastBoard::PASS ) {
+			group = parent;
+		} else {
+//			if ( group != parent ) break;
+		}
+    }
+    if ( d == 4 && group != FastBoard::PASS && emp4 <= 1 ) {
+		int searched_depth = 0;
+		bool ret = ladder_escape(state, vertex, &searched_depth, vertex);
+		myprintf("captured lib2 ret=%d,depth=%d,vtx=%s\n",ret,searched_depth,board.move_to_text(vertex).c_str());
+		if ( ret == false && searched_depth >= OK_DEPTH ) {
+			return CANNOT_ESCAPE;
+		}
+	}
 /*
 OOOOO
 OO..O ladder, but escape ok. killing eye.
@@ -257,6 +284,7 @@ OOOOO
 ..O..XOOXX. 
 ......XXOO. 
 */
+/*
     // find chase not ladder. libs = 2.
 	group = FastBoard::PASS;
     emp4 = 0;
@@ -288,7 +316,7 @@ OOOOO
 			return CAPTURE;
 		}
 	}
-
+*/
     return NO_LADDER;
 }
 

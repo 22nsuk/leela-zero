@@ -937,7 +937,7 @@ Network::Netresult Network::get_output_internal(
 		if ( ladder ) {
 			float r = result.policy[sym_idx];
 			float mul = 1.0f / 1000000.0f;
-//			if ( state->m_komove != FastBoard::NO_VERTEX ) mul = 1.0;	// ladder escape maybe ok for ko threat.
+			if ( state->m_komove != FastBoard::NO_VERTEX ) mul = 1.0;	// ladder escape maybe ok for ko threat.
 			if ( ladder == Ladder::CANNOT_CAPTURE ) mul = 1.0f / 1.0f;	// 1.0f / 2.0f
 			if ( ladder == Ladder::CAPTURE        ) mul = 1.0;	// 1.5
 			
@@ -945,11 +945,11 @@ Network::Netresult Network::get_output_internal(
         	if ( mul!=1.0 ) {
 				extern size_t s_root_movenum;
 				auto movenum = state->get_movenum();
-				myprintf("s_root_movenum=%d\n",s_root_movenum);
+//				myprintf("s_root_movenum=%d\n",s_root_movenum);
 		        const auto x = idx % BOARD_SIZE;
 		        const auto y = idx / BOARD_SIZE;
 		        const auto vertex = state->board.get_vertex(y, x);
-				if ( movenum == s_root_movenum && result.policy[sym_idx] > 0.30 ) {
+				if ( movenum == s_root_movenum && result.policy[sym_idx] > 0.10 ) {
 					myprintf("[%d:%3s:m=%3d,ko=%3d] %.5f -> %.5f\n",ladder,state->board.move_to_text(vertex).c_str(),movenum ,state->m_komove, result.policy[sym_idx],r);
 					FILE *fp = fopen("lz_out.txt","a");
 					if ( fp ) {
