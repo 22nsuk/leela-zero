@@ -848,7 +848,7 @@ Network::Netresult Network::get_output_internal(
 //  fill_ladder_planes(state, captures_it, escapes_it, symmetry);
     fill_ladder_planes(state, captures_it, escapes_it, 0);
 */
-#if 1
+#if 0
     int del_next_sp = 0;
     for (auto i=0; i < NUM_INTERSECTIONS; i++) {
         const auto x = i % BOARD_SIZE;
@@ -934,15 +934,15 @@ Network::Netresult Network::get_output_internal(
         const auto sym_idx = symmetry_nn_idx_table[symmetry][idx];
         result.policy[sym_idx] = outputs[idx];
 		int ladder = ladder_map[sym_idx];
-		if ( ladder ) {
+		if ( 1 && ladder ) {
 			float r = result.policy[sym_idx];
 			float mul = 1.0f / 1000000.0f;
-			if ( state->m_komove != FastBoard::NO_VERTEX ) mul = 1.0;	// ladder escape maybe ok for ko threat.
+//			if ( state->m_komove != FastBoard::NO_VERTEX ) mul = 1.0;	// ladder escape maybe ok for ko threat.
 			if ( ladder == Ladder::CANNOT_CAPTURE ) mul = 1.0f / 1.0f;	// 1.0f / 2.0f
 			if ( ladder == Ladder::CAPTURE        ) mul = 1.0;	// 1.5
 			
 			r *= mul;
-        	if ( mul!=1.0 ) {
+        	if ( 0 && mul!=1.0 ) {
 				extern size_t s_root_movenum;
 				auto movenum = state->get_movenum();
 //				myprintf("s_root_movenum=%d\n",s_root_movenum);
@@ -953,7 +953,7 @@ Network::Netresult Network::get_output_internal(
 					myprintf("[%d:%3s:m=%3d,ko=%3d] %.5f -> %.5f\n",ladder,state->board.move_to_text(vertex).c_str(),movenum ,state->m_komove, result.policy[sym_idx],r);
 					FILE *fp = fopen("lz_out.txt","a");
 					if ( fp ) {
-						fprintf(fp,"[%d:%3s:m=%3d,ko=%3d] %.5f -> %.5f\n",ladder,state->board.move_to_text(vertex).c_str(),movenum ,state->m_komove, result.policy[sym_idx],r);
+						fprintf(fp,"[%d:%3s:m=%3zu,ko=%3d] %.5f -> %.5f\n",ladder,state->board.move_to_text(vertex).c_str(),movenum ,state->m_komove, result.policy[sym_idx],r);
 						fclose(fp);
 					}
 				}
