@@ -937,23 +937,24 @@ Network::Netresult Network::get_output_internal(
 		if ( 1 && ladder ) {
 			float r = result.policy[sym_idx];
 			float mul = 1.0f / 1000000.0f;
-//			if ( state->m_komove != FastBoard::NO_VERTEX ) mul = 1.0;	// ladder escape maybe ok for ko threat.
-			if ( ladder == Ladder::CANNOT_CAPTURE ) mul = 1.0f / 1.0f;	// 1.0f / 2.0f
-			if ( ladder == Ladder::CAPTURE        ) mul = 1.0;	// 1.5
+//			if ( state->m_komove != FastBoard::NO_VERTEX ) mul = 1.0;	//  ladder escape maybe ok for ko threat?
+			if ( ladder == Ladder::CANNOT_CAPTURE ) mul = 0.0001;	// 0.0001	chase "not ladder". bad move?
+			if ( ladder == Ladder::CAPTURE        ) mul = 1.0;	// 1.5		difficult ladder. can capture opponent lib2.
 			
 			r *= mul;
-        	if ( 0 && mul!=1.0 ) {
+        	if ( 0 && mul != 1.0 ) {
 				extern size_t s_root_movenum;
+				extern size_t s_clear_board_num;
 				auto movenum = state->get_movenum();
 //				myprintf("s_root_movenum=%d\n",s_root_movenum);
-		        const auto x = idx % BOARD_SIZE;
-		        const auto y = idx / BOARD_SIZE;
+		        const auto y = sym_idx % BOARD_SIZE;
+		        const auto x = sym_idx / BOARD_SIZE;
 		        const auto vertex = state->board.get_vertex(y, x);
 				if ( movenum == s_root_movenum && result.policy[sym_idx] > 0.10 ) {
 					myprintf("[%d:%3s:m=%3d,ko=%3d] %.5f -> %.5f\n",ladder,state->board.move_to_text(vertex).c_str(),movenum ,state->m_komove, result.policy[sym_idx],r);
 					FILE *fp = fopen("lz_out.txt","a");
 					if ( fp ) {
-						fprintf(fp,"[%d:%3s:m=%3zu,ko=%3d] %.5f -> %.5f\n",ladder,state->board.move_to_text(vertex).c_str(),movenum ,state->m_komove, result.policy[sym_idx],r);
+						fprintf(fp,"[%d:games=%4zu:%3s:m=%3zu,ko=%3d] %.5f -> %.5f\n",ladder,s_clear_board_num-2,state->board.move_to_text(vertex).c_str(),movenum ,state->m_komove, result.policy[sym_idx],r);
 						fclose(fp);
 					}
 				}

@@ -31,6 +31,7 @@ const int LADDER_DEPTH_MAX = 100;
 const int OK_DEPTH = 7;		// if ladder search needs deep depth, it may be ladder.
 
 size_t s_root_movenum;
+size_t s_clear_board_num;
 
 Ladder::LadderStatus Ladder::ladder_status(const FastState & /*state*/) {
 
@@ -207,7 +208,6 @@ int Ladder::ladder_maybe(const FastState &state, int vertex) {
 
     const auto &board = state.board;
     const auto to_move     = board.get_to_move();
-//	const auto not_to_move = board.get_not_to_move();
 
     if (!state.is_move_legal(to_move, vertex)) {
         return NO_LADDER;
@@ -225,20 +225,18 @@ int Ladder::ladder_maybe(const FastState &state, int vertex) {
 //		if ( n == FastBoard::INVAL ) break;
         if ( n != to_move ) continue;
         int libs = board.get_liberties(n_vtx);
-//		if ( libs >= 4 ) break;
-		if ( libs >= 3 ) break;
+		if ( libs >= 4 ) break;
+//		if ( libs >= 3 ) break;
 		if ( libs != 1 ) continue;
         auto parent = board.m_parent[n_vtx];
         if ( group == FastBoard::PASS ) {
-//        	int vtx2 = board.get_state_neighbor(vertex, (d+2)&3);
-//			if ( board.get_state(vtx2) != FastBoard::EMPTY
 			group = parent;
 		} else {
-			if ( group != parent ) break;
+//			if ( group != parent ) break;
 		}
     }
-//  if ( d == 4 && group != FastBoard::PASS && emp4 <= 2 ) {
-    if ( d == 4 && group != FastBoard::PASS && emp4 == 2 ) {
+	if ( d == 4 && group != FastBoard::PASS && emp4 <= 2 ) {
+//	if ( d == 4 && group != FastBoard::PASS && emp4 == 2 ) {
 		int searched_depth = 0;
 		bool ret = ladder_escape(state, vertex, &searched_depth);
 //		myprintf("escape_search ret=%d,depth=%d,vtx=%s\n",ret,searched_depth,board.move_to_text(vertex).c_str());
@@ -247,7 +245,7 @@ int Ladder::ladder_maybe(const FastState &state, int vertex) {
 		}
 	}
 
-/*
+
 	//
 	group = FastBoard::PASS;
     emp4 = 0;
@@ -259,7 +257,7 @@ int Ladder::ladder_maybe(const FastState &state, int vertex) {
         if ( n != to_move ) continue;
         int libs = board.get_liberties(n_vtx);
 		if ( libs >= 4 ) break;
-		if ( libs != 2 ) continue;
+		if ( libs == 1 ) continue;	// lib1 is already checked.
         auto parent = board.m_parent[n_vtx];
         if ( group == FastBoard::PASS ) {
 			group = parent;
@@ -267,52 +265,84 @@ int Ladder::ladder_maybe(const FastState &state, int vertex) {
 //			if ( group != parent ) break;
 		}
     }
-    if ( d == 4 && group != FastBoard::PASS && emp4 <= 1 ) {
+    if ( d == 4 && group != FastBoard::PASS && emp4 <= 2 ) {
 		int searched_depth = 0;
 		bool ret = ladder_escape(state, vertex, &searched_depth, vertex);
-		myprintf("captured lib2 ret=%d,depth=%d,vtx=%s\n",ret,searched_depth,board.move_to_text(vertex).c_str());
+//		myprintf("captured lib2 ret=%d,depth=%d,vtx=%s\n",ret,searched_depth,board.move_to_text(vertex).c_str());
 		if ( ret == false && searched_depth >= OK_DEPTH ) {
 			return CANNOT_ESCAPE;
 		}
 	}
-*/
+
+#if 0
 /*
 OOOOO
 OO..O ladder, but escape ok. killing eye.
-OX..O 
+OX..O
 OOOOO
-........... 
-........... 
+...........
+...........
 ...........  "X" plays atari is bad move?
-......OX...  "O" is not ladder. 
-..O..XOOXX. 
-......XXOO. 
+......OX...  "O" is not ladder.
+..O..XOOXX.
+......XXOO.
 */
-/*
     // find chase not ladder. libs = 2.
+	const auto not_to_move = board.get_not_to_move();
 	group = FastBoard::PASS;
     emp4 = 0;
+	int same_col = 0;
 	int stones = 0;
-    for (d = 0; d < 4; d++) {
+	const int LOOP = 4;	// chase distanse
+	for (d = 0; d < 4; d++) {
         int n_vtx = board.get_state_neighbor(vertex, d);
         int n = board.get_state(n_vtx);
         if ( n == FastBoard::EMPTY ) emp4++;
+        if ( n == to_move     ) same_col++;
         if ( n != not_to_move ) continue;
         int libs = board.get_liberties(n_vtx);
-        if ( libs >= 4 ) break;
-        if ( libs != 2 ) continue;
+        if ( libs != 2 ) break;
         auto parent = board.m_parent[n_vtx];
-        if ( group == FastBoard::PASS ) {
-			group = parent;
-			stones = board.m_stones[group];
-		} else {
+        if ( group != FastBoard::PASS ) {
 			if ( group != parent ) break;
+        	continue;
+        }
+		int vtx2 = board.get_state_neighbor(n_vtx, d);
+		if ( board.get_state(vtx2) != not_to_move ) continue;
+		int vtx3 = board.get_state_neighbor(n_vtx, (d+1)&3);
+		int vtx4 = board.get_state_neighbor(n_vtx, (d+3)&3);
+		int n3 = board.get_state(vtx3);
+		int n4 = board.get_state(vtx4);
+		int dd = 0;
+		if ( n3 == FastBoard::EMPTY && n4 == to_move && board.get_liberties(vtx4) == 2 ) dd = 3;
+		if ( n4 == FastBoard::EMPTY && n3 == to_move && board.get_liberties(vtx3) == 2 ) dd = 1;
+		if ( dd == 0 ) continue;
+		int vtx_x = vtx2;
+		int i,vtxr,vtxl,vtxd;
+		for (i=0; i<LOOP; i++) {
+			bool flag = false;
+			vtxr = board.get_state_neighbor(vtx_x, (d+dd  )&3);
+			vtxl = board.get_state_neighbor(vtx_x, (d+dd+2)&3);
+			if ( board.get_state(vtxl) == to_move     && board.get_liberties(vtxl) == 2 ) flag = true;
+			if ( board.get_state(vtxr) == not_to_move                                   ) flag = true;
+			if ( flag != true ) break;
+			vtx_x = vtxr;
+			vtxr = board.get_state_neighbor(vtx_x, (d+dd  )&3);
+			vtxd = board.get_state_neighbor(vtx_x, (d     )&3);
+			flag = false;
+			if ( board.get_state(vtxr) == to_move     && board.get_liberties(vtxl) == 2 ) flag = true;
+			if ( board.get_state(vtxd) == not_to_move                                   ) flag = true;
+			if ( flag != true ) break;
+			vtx_x = vtxd;
 		}
+		if ( i != LOOP ) continue;
+		group = parent;
+		stones = board.m_stones[group];
     }
-    if ( d == 4 && group != FastBoard::PASS ) {
+    if ( d == 4 && group != FastBoard::PASS && same_col == 0 && emp4 == 3 ) {
 		int searched_depth = 0;
 		bool ret = ladder_capture(state, vertex, &searched_depth);
-		myprintf("capture_search ret=%d,depth=%d,stones=%d,vtx=%s\n",ret,searched_depth,stones, board.move_to_text(vertex).c_str());
+		myprintf("capture_search ret=%d,depth=%d,stones=%d,vtx=%s,LOOP=%d\n",ret,searched_depth,stones, board.move_to_text(vertex).c_str(),LOOP);
 		if ( ret == false && searched_depth >= OK_DEPTH && stones >= 1 ) {
 			return CANNOT_CAPTURE;
 		}
@@ -320,7 +350,8 @@ OOOOO
 			return CAPTURE;
 		}
 	}
-*/
+#endif
+
     return NO_LADDER;
 }
 
